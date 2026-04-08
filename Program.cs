@@ -1,32 +1,19 @@
+using FluentValidation;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+builder.Services.AddControllers();
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
 
 app.UseHttpsRedirection();
-
-app.MapGet("/api/health", () =>
-{
-    return Results.Ok(new { status = "healthy" });
-});
-
-app.MapGet("/api/metrics/summary", () =>
-{
-    return Results.Ok(new
-    {
-        totalRepositories = 0,
-        totalMetrics = 0,
-        lastUpdated = DateTime.UtcNow
-    });
-});
+app.MapControllers();
 
 app.Run();

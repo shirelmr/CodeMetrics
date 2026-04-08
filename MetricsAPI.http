@@ -1,6 +1,29 @@
 @MetricsAPI_HostAddress = http://localhost:5035
 
-GET {{MetricsAPI_HostAddress}}/weatherforecast/
+### Create valid repo
+POST {{MetricsAPI_HostAddress}}/api/repositories
+Content-Type: application/json
+
+{
+  "name": "CodeMetrics",
+  "url": "https://github.com/shirelmr/codemetrics",
+  "language": "C#"
+}
+
+### Create invalid repo
+POST {{MetricsAPI_HostAddress}}/api/repositories
+Content-Type: application/json
+
+{
+  "name": "",
+  "url": "not-a-url",
+  "language": ""
+}
+
+### Get all repositories
+GET {{MetricsAPI_HostAddress}}/api/repositories
 Accept: application/json
 
-###
+### Get repository by id
+GET {{MetricsAPI_HostAddress}}/api/repositories/1
+Accept: application/json
