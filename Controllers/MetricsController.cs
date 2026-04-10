@@ -11,7 +11,7 @@ public class MetricsController : ControllerBase
     {
         return Ok(new
         {
-            totalRepositories = 0,
+            totalRepositories = RepositoriesController.GetCount(),
             totalMetrics = 0,
             lastUpdated = DateTime.UtcNow
         });

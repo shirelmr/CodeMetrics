@@ -13,6 +13,8 @@ public class RepositoriesController : ControllerBase
     private static readonly List<Repository> _repositories = new();
     private static int _nextId = 1;
 
+    public static int GetCount() => _repositories.Count;
+
     private readonly IValidator<CreateRepositoryDto> _validator;
 
     // Constructor — .NET automatically injects the validator here

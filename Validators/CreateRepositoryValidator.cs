@@ -1,7 +1,6 @@
 using FluentValidation;
 using MetricsAPI.DTOs;
-using MetricsAPI.Models;
-using Microsoft.AspNetCore.Mvc;
+
 
 namespace MetricsAPI.Validators;
 
