@@ -1,6 +1,7 @@
 using FluentValidation;
 using MetricsAPI.DTOs;
 using MetricsAPI.Models;
+using MetricsAPI.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MetricsAPI.Controllers;
@@ -9,25 +10,20 @@ namespace MetricsAPI.Controllers;
 [Route("api/repositories")]
 public class RepositoriesController : ControllerBase
 {
-    // In-memory storage — a simple list acting as your "database" for now
-    private static readonly List<Repository> _repositories = new();
-    private static int _nextId = 1;
-
-    public static int GetCount() => _repositories.Count;
-
+    private readonly RepositoryStore _store;
     private readonly IValidator<CreateRepositoryDto> _validator;
 
-    // Constructor — .NET automatically injects the validator here
-    public RepositoriesController(IValidator<CreateRepositoryDto> validator)
+    public RepositoriesController(RepositoryStore store, IValidator<CreateRepositoryDto> validator)
     {
+        _store = store;
         _validator = validator;
     }
-
+    
     // GET /api/repositories
     [HttpGet]
     public ActionResult<IEnumerable<RepositoryResponseDto>> GetAll()
     {
-        var result = _repositories.Select(r => new RepositoryResponseDto
+        var result = _store.GetAll().Select(r => new RepositoryResponseDto
         {
             Id = r.Id,
             Name = r.Name,
@@ -42,7 +38,7 @@ public class RepositoriesController : ControllerBase
     [HttpGet("{id}")]
     public ActionResult<RepositoryResponseDto> GetById(int id)
     {
-        var repo = _repositories.FirstOrDefault(r => r.Id == id);
+        var repo = _store.GetById(id);
         if (repo is null) return NotFound();
 
         return Ok(new RepositoryResponseDto
@@ -64,13 +60,12 @@ public class RepositoriesController : ControllerBase
 
         var repo = new Repository
         {
-            Id = _nextId++,
             Name = dto.Name,
             Url = dto.Url,
             Language = dto.Language
         };
 
-        _repositories.Add(repo);
+        _store.Add(repo);
 
         var response = new RepositoryResponseDto
         {
@@ -82,4 +77,35 @@ public class RepositoriesController : ControllerBase
 
         return CreatedAtAction(nameof(GetById), new { id = repo.Id }, response);
     }
+
+    // PUT /api/repositories/{id}
+    [HttpPut("{id}")]
+    public async Task<ActionResult<RepositoryResponseDto>> Update(int id, CreateRepositoryDto dto)
+    {
+        var validation = await _validator.ValidateAsync(dto);
+        if (!validation.IsValid)
+            return BadRequest(validation.Errors.Select(e => e.ErrorMessage));
+        
+        var updated = _store.Update(new Repository
+        {
+            Id = id,
+            Name = dto.Name,
+            Url = dto.Url,
+            Language = dto.Language
+        });
+        if (!updated) return NotFound();
+        return NoContent();
+
+    }
+
+    // DELETE /api/repositories/{id}
+    [HttpDelete("{id}")]
+    public IActionResult Delete(int id)
+    {
+        var deleted = _store.Delete(id);
+        if (!deleted) return NotFound();
+        return NoContent();
+    }
+
+
 }
