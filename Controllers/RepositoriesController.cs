@@ -1,7 +1,7 @@
 using FluentValidation;
 using MetricsAPI.DTOs;
 using MetricsAPI.Models;
-using MetricsAPI.Services;
+using MetricsAPI.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MetricsAPI.Controllers;
@@ -10,35 +10,46 @@ namespace MetricsAPI.Controllers;
 [Route("api/repositories")]
 public class RepositoriesController : ControllerBase
 {
-    private readonly RepositoryStore _store;
+    private readonly IRepositoryRepository _repo;
     private readonly IValidator<CreateRepositoryDto> _validator;
 
-    public RepositoriesController(RepositoryStore store, IValidator<CreateRepositoryDto> validator)
+    public RepositoriesController(IRepositoryRepository repo, IValidator<CreateRepositoryDto> validator)
     {
-        _store = store;
+        _repo = repo;
         _validator = validator;
     }
     
     // GET /api/repositories
     [HttpGet]
-    public ActionResult<IEnumerable<RepositoryResponseDto>> GetAll()
+    public async Task<ActionResult<PagedResponseDto<RepositoryResponseDto>>> GetAll([FromQuery] RepositoryQueryDto query)
     {
-        var result = _store.GetAll().Select(r => new RepositoryResponseDto
-        {
-            Id = r.Id,
-            Name = r.Name,
-            Url = r.Url,
-            Language = r.Language
-        });
+        if (query.PageSize > 50) query.PageSize = 50;
+        if (query.Page < 1) query.Page = 1;
 
-        return Ok(result);
+        var (items, totalCount) = await _repo.GetFilteredAsync(query);
+
+        var response = new PagedResponseDto<RepositoryResponseDto>
+        {
+            Items = items.Select(repo => new RepositoryResponseDto
+            {
+                Id = repo.Id,
+                Name = repo.Name,
+                Url = repo.Url,
+                Language = repo.Language
+            }),
+            TotalCount = totalCount,
+            Page = query.Page,
+            PageSize = query.PageSize
+        };
+
+        return Ok(response);
     }
 
     // GET /api/repositories/{id}
     [HttpGet("{id}")]
-    public ActionResult<RepositoryResponseDto> GetById(int id)
+    public async Task<ActionResult<RepositoryResponseDto>> GetById(int id)
     {
-        var repo = _store.GetById(id);
+        var repo = await _repo.GetByIdAsync(id);
         if (repo is null) return NotFound();
 
         return Ok(new RepositoryResponseDto
@@ -65,7 +76,7 @@ public class RepositoriesController : ControllerBase
             Language = dto.Language
         };
 
-        _store.Add(repo);
+        await _repo.AddAsync(repo);
 
         var response = new RepositoryResponseDto
         {
@@ -86,7 +97,7 @@ public class RepositoriesController : ControllerBase
         if (!validation.IsValid)
             return BadRequest(validation.Errors.Select(e => e.ErrorMessage));
         
-        var updated = _store.Update(new Repository
+        var updated = await _repo.UpdateAsync(new Repository
         {
             Id = id,
             Name = dto.Name,
@@ -100,9 +111,9 @@ public class RepositoriesController : ControllerBase
 
     // DELETE /api/repositories/{id}
     [HttpDelete("{id}")]
-    public IActionResult Delete(int id)
+    public async Task<IActionResult> Delete(int id)
     {
-        var deleted = _store.Delete(id);
+        var deleted = await _repo.DeleteAsync(id);
         if (!deleted) return NotFound();
         return NoContent();
     }

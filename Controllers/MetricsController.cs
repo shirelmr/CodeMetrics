@@ -1,5 +1,5 @@
-using MetricsAPI.Services;
 using Microsoft.AspNetCore.Mvc;
+using MetricsAPI.Repositories;
 
 namespace MetricsAPI.Controllers;
 
@@ -7,19 +7,20 @@ namespace MetricsAPI.Controllers;
 [Route("api/metrics")]
 public class MetricsController : ControllerBase
 {
-    private readonly RepositoryStore _store;
+    private readonly IRepositoryRepository _repo;
 
-    public MetricsController(RepositoryStore store)
+    public MetricsController(IRepositoryRepository repo)
     {
-        _store = store;
+        _repo = repo;
     }
 
     [HttpGet("summary")]
-    public IActionResult GetSummary()
+    public async Task<IActionResult> GetSummary()
     {
+        var totalRepositories = (await _repo.GetAllAsync()).Count();
         return Ok(new
         {
-            totalRepositories = _store.Count(),
+            totalRepositories = totalRepositories,
             totalMetrics = 0,
             lastUpdated = DateTime.UtcNow
         });
