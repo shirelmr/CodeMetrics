@@ -8,10 +8,12 @@ namespace MetricsAPI.Repositories;
 public class RepositoryRepository : IRepositoryRepository
 {
     private readonly AppDbContext _context;
+    private readonly ILogger<RepositoryRepository> _logger;
 
-    public RepositoryRepository(AppDbContext context)
+    public RepositoryRepository(AppDbContext context, ILogger<RepositoryRepository> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
     public async Task<IEnumerable<Repository>> GetAllAsync()
@@ -26,33 +28,68 @@ public class RepositoryRepository : IRepositoryRepository
 
     public async Task<Repository> AddAsync(Repository repo)
     {
-        repo.CreatedAt = DateTime.UtcNow;
-        _context.Repositories.Add(repo);
-        await _context.SaveChangesAsync();
-        return repo;
+        try
+        {
+            repo.CreatedAt = DateTime.UtcNow;
+            _context.Repositories.Add(repo);
+            await _context.SaveChangesAsync();
+            _logger.LogDebug("Repository {Name} added to database with ID {Id}", repo.Name, repo.Id);
+            return repo;
+        }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogError(ex, "Database error adding repository {Name}", repo.Name);
+            throw;
+        }
     }
 
     public async Task<bool> UpdateAsync(Repository repo)
     {
-        var existing = await _context.Repositories.FindAsync(repo.Id);
-        if (existing is null) return false;
+        try
+        {
+            var existing = await _context.Repositories.FindAsync(repo.Id);
+            if (existing is null)
+            {
+                _logger.LogDebug("Repository with ID {Id} not found for update", repo.Id);
+                return false;
+            }
 
-        existing.Name = repo.Name;
-        existing.Url = repo.Url;
-        existing.Language = repo.Language;
+            existing.Name = repo.Name;
+            existing.Url = repo.Url;
+            existing.Language = repo.Language;
 
-        await _context.SaveChangesAsync();
-        return true;
+            await _context.SaveChangesAsync();
+            _logger.LogDebug("Repository with ID {Id} updated in database", repo.Id);
+            return true;
+        }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogError(ex, "Database error updating repository with ID {Id}", repo.Id);
+            throw;
+        }
     }
 
     public async Task<bool> DeleteAsync(int id)
     {
-        var repo = await _context.Repositories.FindAsync(id);
-        if (repo is null) return false;
+        try
+        {
+            var repo = await _context.Repositories.FindAsync(id);
+            if (repo is null)
+            {
+                _logger.LogDebug("Repository with ID {Id} not found for deletion", id);
+                return false;
+            }
 
-        _context.Repositories.Remove(repo);
-        await _context.SaveChangesAsync();
-        return true;
+            _context.Repositories.Remove(repo);
+            await _context.SaveChangesAsync();
+            _logger.LogDebug("Repository with ID {Id} deleted from database", id);
+            return true;
+        }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogError(ex, "Database error deleting repository with ID {Id}", id);
+            throw;
+        }
     }
 
     public async Task<int> CountAsync()
@@ -62,6 +99,9 @@ public class RepositoryRepository : IRepositoryRepository
 
     public async Task<(IEnumerable<Repository> Items, int TotalCount)> GetFilteredAsync(RepositoryQueryDto query)
     {
+        _logger.LogDebug("Filtering repositories: Language={Language}, Sort={Sort}, Page={Page}, PageSize={PageSize}", 
+            query.Language ?? "all", query.Sort, query.Page, query.PageSize);
+            
         var queryable = _context.Repositories.AsQueryable();
         if (!string.IsNullOrWhiteSpace(query.Language))
         {
@@ -83,6 +123,7 @@ public class RepositoryRepository : IRepositoryRepository
             .Take(query.PageSize)
             .ToListAsync();
 
+        _logger.LogDebug("Found {TotalCount} repositories, returning {ItemCount} items", totalCount, items.Count);
         return (items, totalCount);
     }
 }

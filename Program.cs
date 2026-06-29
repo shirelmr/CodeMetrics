@@ -1,7 +1,8 @@
 using FluentValidation;
 using MetricsAPI.Data;
-using Microsoft.EntityFrameworkCore;
+using MetricsAPI.Models;
 using MetricsAPI.Repositories;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +13,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 
 builder.Services.AddScoped<IRepositoryRepository, RepositoryRepository>();
+builder.Services.AddAutoMapper(typeof(Program));
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -26,5 +28,37 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.MapControllers();
+
+// Seed database on startup if empty
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    context.Database.EnsureCreated();
+
+    if (!context.Repositories.Any())
+    {
+        var seedRepos = new List<Repository>
+        {
+            new() { Name = "CodeMetricsPro", Url = "https://github.com/you/codemetricspro", Language = "C#", CreatedAt = DateTime.UtcNow },
+            new() { Name = "TodoApi", Url = "https://github.com/you/todoapi", Language = "C#", CreatedAt = DateTime.UtcNow },
+            new() { Name = "WeatherService", Url = "https://github.com/you/weatherservice", Language = "C#", CreatedAt = DateTime.UtcNow },
+            new() { Name = "ReactDashboard", Url = "https://github.com/you/reactdashboard", Language = "JavaScript", CreatedAt = DateTime.UtcNow },
+            new() { Name = "VueShop", Url = "https://github.com/you/vueshop", Language = "JavaScript", CreatedAt = DateTime.UtcNow },
+            new() { Name = "DataPipeline", Url = "https://github.com/you/datapipeline", Language = "Python", CreatedAt = DateTime.UtcNow },
+            new() { Name = "MLClassifier", Url = "https://github.com/you/mlclassifier", Language = "Python", CreatedAt = DateTime.UtcNow },
+            new() { Name = "SpringBootApi", Url = "https://github.com/you/springbootapi", Language = "Java", CreatedAt = DateTime.UtcNow },
+            new() { Name = "RustCli", Url = "https://github.com/you/rustcli", Language = "Rust", CreatedAt = DateTime.UtcNow },
+            new() { Name = "GoMicroservice", Url = "https://github.com/you/gomicroservice", Language = "Go", CreatedAt = DateTime.UtcNow },
+            new() { Name = "NextjsBlog", Url = "https://github.com/you/nextjsblog", Language = "TypeScript", CreatedAt = DateTime.UtcNow },
+            new() { Name = "GraphqlServer", Url = "https://github.com/you/graphqlserver", Language = "TypeScript", CreatedAt = DateTime.UtcNow },
+            new() { Name = "DockerOrchestrator", Url = "https://github.com/you/dockerorchestrator", Language = "Go", CreatedAt = DateTime.UtcNow },
+            new() { Name = "AndroidApp", Url = "https://github.com/you/androidapp", Language = "Kotlin", CreatedAt = DateTime.UtcNow },
+            new() { Name = "IosClient", Url = "https://github.com/you/iosclient", Language = "Swift", CreatedAt = DateTime.UtcNow },
+        };
+
+        context.Repositories.AddRange(seedRepos);
+        context.SaveChanges();
+    }
+}
 
 app.Run();
