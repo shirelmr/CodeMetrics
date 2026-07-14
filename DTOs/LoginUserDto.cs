@@ -1,4 +1,4 @@
-namespace MetricsAPI.DTO.s;
+namespace MetricsAPI.DTOs;
 
 public class LoginUserDto
 {

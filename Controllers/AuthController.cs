@@ -63,4 +63,27 @@ public class AuthController : ControllerBase
         });
     }
 
+    [HttpPost("login")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> Login(LoginUserDto dto)
+    {
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Email.ToLower() == dto.Email.ToLower());
+            
+        if (user is null)
+            return Unauthorized();
+
+        var passwordValid = BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash);
+
+        if (!passwordValid)
+            return Unauthorized();
+
+        return Ok(new
+        {
+            message = "Login successful",
+            email = user.Email,
+            role = user.Role
+        });
+    }
+
 }
