@@ -1,9 +1,13 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 using FluentValidation;
 using MetricsAPI.Data;
 using MetricsAPI.DTOs;
 using MetricsAPI.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 namespace MetricsAPI.Controllers;
 
@@ -15,14 +19,18 @@ public class AuthController : ControllerBase
     private readonly IValidator<RegisterUserDto> _validator;
     private readonly ILogger<AuthController> _logger;
 
+    private readonly IConfiguration _configuration;
+
     public AuthController(
         AppDbContext context,
         IValidator<RegisterUserDto> validator,
-        ILogger<AuthController> logger)
+        ILogger<AuthController> logger,
+        IConfiguration configuration)
     {
         _context = context;
         _validator = validator;
         _logger = logger;
+        _configuration = configuration;
     }
 
     [HttpPost("register")]
@@ -78,11 +86,33 @@ public class AuthController : ControllerBase
         if (!passwordValid)
             return Unauthorized();
 
+        var key = new SymmetricSecurityKey (Encoding.UTF8.GetBytes(_configuration["JwtSettings:SecretKey"]!));
+        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Email, user.Email),
+            new Claim(ClaimTypes.Role, user.Role)
+        };
+
+        var token = new JwtSecurityToken(
+            issuer: _configuration["JwtSettings:Issuer"],
+            audience: _configuration["JwtSettings:Audience"],
+            claims: claims,
+            expires: DateTime.UtcNow.AddMinutes(
+                int.Parse(_configuration["JwtSettings:ExpiryMinutes"]!)),
+            signingCredentials: credentials
+        );
+
+        var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+        
         return Ok(new
         {
             message = "Login successful",
             email = user.Email,
-            role = user.Role
+            role = user.Role,
+            accesToken = tokenString
         });
     }
 
