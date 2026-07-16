@@ -48,7 +48,7 @@ namespace MetricsAPI.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Repositories");
+                    b.ToTable("Repositories", (string)null);
                 });
 
             modelBuilder.Entity("MetricsAPI.Models.User", b =>
@@ -85,7 +85,7 @@ namespace MetricsAPI.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("MetricsAPI.Models.Repository", b =>

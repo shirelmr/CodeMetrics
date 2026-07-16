@@ -28,7 +28,10 @@ public class RepositoriesController : ControllerBase
         _logger = logger;
         _mapper = mapper;
     }
-    
+
+    private int GetUserId() => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+
     // GET /api/repositories
     [HttpGet]
     [ProducesResponseType(typeof(PagedResponseDto<RepositoryResponseDto>), StatusCodes.Status200OK)]
@@ -37,8 +40,8 @@ public class RepositoriesController : ControllerBase
     {
         try
         {
-            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            
+            var userId = GetUserId();
+
             if (query.PageSize > 50) query.PageSize = 50;
             if (query.Page < 1) query.Page = 1;
 
@@ -62,7 +65,7 @@ public class RepositoriesController : ControllerBase
     {
         try
         {
-            var repo = await _repo.GetByIdAsync(id);
+            var repo = await _repo.GetByIdAsync(id, GetUserId());
             if (repo is null)
             {
                 _logger.LogWarning("Repository with ID {Id} not found", id);
@@ -88,7 +91,7 @@ public class RepositoriesController : ControllerBase
         try
         {
             var validation = await _validator.ValidateAsync(dto);
-            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var userId = GetUserId();
 
             if (!validation.IsValid)
             {
@@ -131,8 +134,11 @@ public class RepositoriesController : ControllerBase
                 return BadRequest(validation.Errors.Select(e => e.ErrorMessage));
             }
             
-            var updated = await _repo.UpdateAsync(_mapper.Map<Repository>(dto));
-            
+            var repo = _mapper.Map<Repository>(dto);
+            repo.Id = id;
+
+            var updated = await _repo.UpdateAsync(repo, GetUserId());
+
             if (!updated)
             {
                 _logger.LogWarning("Repository with ID {Id} not found for update", id);

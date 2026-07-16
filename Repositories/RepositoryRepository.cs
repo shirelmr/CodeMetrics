@@ -21,9 +21,10 @@ public class RepositoryRepository : IRepositoryRepository
         return await _context.Repositories.ToListAsync();
     }
 
-    public async Task<Repository?> GetByIdAsync(int id)
+    public async Task<Repository?> GetByIdAsync(int id, int userId)
     {
-        return await _context.Repositories.FindAsync(id);
+        return await _context.Repositories
+            .FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId);
     }
 
     public async Task<Repository> AddAsync(Repository repo)
@@ -43,11 +44,12 @@ public class RepositoryRepository : IRepositoryRepository
         }
     }
 
-    public async Task<bool> UpdateAsync(Repository repo)
+    public async Task<bool> UpdateAsync(Repository repo, int userId)
     {
         try
         {
-            var existing = await _context.Repositories.FindAsync(repo.Id);
+            var existing = await _context.Repositories
+                .FirstOrDefaultAsync(r => r.Id == repo.Id && r.UserId == userId);
             if (existing is null)
             {
                 _logger.LogDebug("Repository with ID {Id} not found for update", repo.Id);

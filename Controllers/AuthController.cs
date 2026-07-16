@@ -112,7 +112,7 @@ public class AuthController : ControllerBase
             message = "Login successful",
             email = user.Email,
             role = user.Role,
-            accesToken = tokenString
+            accessToken = tokenString
         });
     }
 
