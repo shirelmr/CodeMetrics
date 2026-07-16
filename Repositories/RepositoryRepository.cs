@@ -97,12 +97,13 @@ public class RepositoryRepository : IRepositoryRepository
         return await _context.Repositories.CountAsync();
     }
 
-    public async Task<(IEnumerable<Repository> Items, int TotalCount)> GetFilteredAsync(RepositoryQueryDto query)
+    public async Task<(IEnumerable<Repository> Items, int TotalCount)> GetFilteredAsync(RepositoryQueryDto query, int userId)
     {
         _logger.LogDebug("Filtering repositories: Language={Language}, Sort={Sort}, Page={Page}, PageSize={PageSize}", 
             query.Language ?? "all", query.Sort, query.Page, query.PageSize);
             
-        var queryable = _context.Repositories.AsQueryable();
+        var queryable = _context.Repositories.Where(r => r.UserId == userId);
+        
         if (!string.IsNullOrWhiteSpace(query.Language))
         {
             queryable = queryable.Where(r =>

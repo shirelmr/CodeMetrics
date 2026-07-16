@@ -4,6 +4,8 @@ using MetricsAPI.DTOs;
 using MetricsAPI.Models;
 using MetricsAPI.Repositories;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace MetricsAPI.Controllers;
 
@@ -11,6 +13,7 @@ namespace MetricsAPI.Controllers;
 
 [ApiController]
 [Route("api/repositories")]
+[Authorize]
 public class RepositoriesController : ControllerBase
 {
     private readonly IRepositoryRepository _repo;
@@ -34,10 +37,12 @@ public class RepositoriesController : ControllerBase
     {
         try
         {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            
             if (query.PageSize > 50) query.PageSize = 50;
             if (query.Page < 1) query.Page = 1;
 
-            var (items, totalCount) = await _repo.GetFilteredAsync(query);
+            var (items, totalCount) = await _repo.GetFilteredAsync(query, userId);
 
             _logger.LogInformation("Retrieved {Count} repositories (Page {Page}, PageSize {PageSize})", items.Count(), query.Page, query.PageSize);
             return Ok(_mapper.Map<IEnumerable<RepositoryResponseDto>>(items));
@@ -83,6 +88,8 @@ public class RepositoriesController : ControllerBase
         try
         {
             var validation = await _validator.ValidateAsync(dto);
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
             if (!validation.IsValid)
             {
                 _logger.LogWarning("Validation failed for repository creation: {Errors}", 
@@ -91,6 +98,7 @@ public class RepositoriesController : ControllerBase
             }
 
             var repo = _mapper.Map<Repository>(dto);
+            repo.UserId = userId;
 
             await _repo.AddAsync(repo);
 
@@ -143,6 +151,7 @@ public class RepositoriesController : ControllerBase
 
     // DELETE /api/repositories/{id}
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(int id)

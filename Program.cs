@@ -54,25 +54,41 @@ using (var scope = app.Services.CreateScope())
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     context.Database.EnsureCreated();
 
+    // Create admin user if none exists
+    if (!context.Users.Any())
+    {
+        var adminUser = new User
+        {
+            Email = "admin@codemetrics.com",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin123!"),
+            Role = "Admin"
+        };
+        context.Users.Add(adminUser);
+        context.SaveChanges();
+    }
+
+    // Seed repos assigned to the admin user
     if (!context.Repositories.Any())
     {
+        var adminId = context.Users.First().Id;
+
         var seedRepos = new List<Repository>
         {
-            new() { Name = "CodeMetricsPro", Url = "https://github.com/you/codemetricspro", Language = "C#", CreatedAt = DateTime.UtcNow },
-            new() { Name = "TodoApi", Url = "https://github.com/you/todoapi", Language = "C#", CreatedAt = DateTime.UtcNow },
-            new() { Name = "WeatherService", Url = "https://github.com/you/weatherservice", Language = "C#", CreatedAt = DateTime.UtcNow },
-            new() { Name = "ReactDashboard", Url = "https://github.com/you/reactdashboard", Language = "JavaScript", CreatedAt = DateTime.UtcNow },
-            new() { Name = "VueShop", Url = "https://github.com/you/vueshop", Language = "JavaScript", CreatedAt = DateTime.UtcNow },
-            new() { Name = "DataPipeline", Url = "https://github.com/you/datapipeline", Language = "Python", CreatedAt = DateTime.UtcNow },
-            new() { Name = "MLClassifier", Url = "https://github.com/you/mlclassifier", Language = "Python", CreatedAt = DateTime.UtcNow },
-            new() { Name = "SpringBootApi", Url = "https://github.com/you/springbootapi", Language = "Java", CreatedAt = DateTime.UtcNow },
-            new() { Name = "RustCli", Url = "https://github.com/you/rustcli", Language = "Rust", CreatedAt = DateTime.UtcNow },
-            new() { Name = "GoMicroservice", Url = "https://github.com/you/gomicroservice", Language = "Go", CreatedAt = DateTime.UtcNow },
-            new() { Name = "NextjsBlog", Url = "https://github.com/you/nextjsblog", Language = "TypeScript", CreatedAt = DateTime.UtcNow },
-            new() { Name = "GraphqlServer", Url = "https://github.com/you/graphqlserver", Language = "TypeScript", CreatedAt = DateTime.UtcNow },
-            new() { Name = "DockerOrchestrator", Url = "https://github.com/you/dockerorchestrator", Language = "Go", CreatedAt = DateTime.UtcNow },
-            new() { Name = "AndroidApp", Url = "https://github.com/you/androidapp", Language = "Kotlin", CreatedAt = DateTime.UtcNow },
-            new() { Name = "IosClient", Url = "https://github.com/you/iosclient", Language = "Swift", CreatedAt = DateTime.UtcNow },
+            new() { Name = "CodeMetricsPro", Url = "https://github.com/you/codemetricspro", Language = "C#", CreatedAt = DateTime.UtcNow, UserId = adminId },
+            new() { Name = "TodoApi", Url = "https://github.com/you/todoapi", Language = "C#", CreatedAt = DateTime.UtcNow, UserId = adminId },
+            new() { Name = "WeatherService", Url = "https://github.com/you/weatherservice", Language = "C#", CreatedAt = DateTime.UtcNow, UserId = adminId },
+            new() { Name = "ReactDashboard", Url = "https://github.com/you/reactdashboard", Language = "JavaScript", CreatedAt = DateTime.UtcNow, UserId = adminId },
+            new() { Name = "VueShop", Url = "https://github.com/you/vueshop", Language = "JavaScript", CreatedAt = DateTime.UtcNow, UserId = adminId },
+            new() { Name = "DataPipeline", Url = "https://github.com/you/datapipeline", Language = "Python", CreatedAt = DateTime.UtcNow, UserId = adminId },
+            new() { Name = "MLClassifier", Url = "https://github.com/you/mlclassifier", Language = "Python", CreatedAt = DateTime.UtcNow, UserId = adminId },
+            new() { Name = "SpringBootApi", Url = "https://github.com/you/springbootapi", Language = "Java", CreatedAt = DateTime.UtcNow, UserId = adminId },
+            new() { Name = "RustCli", Url = "https://github.com/you/rustcli", Language = "Rust", CreatedAt = DateTime.UtcNow, UserId = adminId },
+            new() { Name = "GoMicroservice", Url = "https://github.com/you/gomicroservice", Language = "Go", CreatedAt = DateTime.UtcNow, UserId = adminId },
+            new() { Name = "NextjsBlog", Url = "https://github.com/you/nextjsblog", Language = "TypeScript", CreatedAt = DateTime.UtcNow, UserId = adminId },
+            new() { Name = "GraphqlServer", Url = "https://github.com/you/graphqlserver", Language = "TypeScript", CreatedAt = DateTime.UtcNow, UserId = adminId },
+            new() { Name = "DockerOrchestrator", Url = "https://github.com/you/dockerorchestrator", Language = "Go", CreatedAt = DateTime.UtcNow, UserId = adminId },
+            new() { Name = "AndroidApp", Url = "https://github.com/you/androidapp", Language = "Kotlin", CreatedAt = DateTime.UtcNow, UserId = adminId },
+            new() { Name = "IosClient", Url = "https://github.com/you/iosclient", Language = "Swift", CreatedAt = DateTime.UtcNow, UserId = adminId },
         };
 
         context.Repositories.AddRange(seedRepos);
